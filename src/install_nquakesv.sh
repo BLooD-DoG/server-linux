@@ -1,7 +1,7 @@
 #!/bin/sh
-# nQuakesv Installer Script v1.8 (for Linux)
+# nQuakesv Installer Script v1.9 (for Linux)
 # by Empezar & dimman
-nqversion="1.8"
+nqversion="1.9"
 
 # Usage info
 show_help() {
@@ -24,8 +24,8 @@ usage: install_nquakesv.sh [-h|--help] [-n|--non-interactive]
     -qq, --extra-quiet      do not output errors during setup.
     -o, --hostname          hostname of the server.
     -p, --number-of-ports   number of ports to run.
-    -t, --qtv               install qtv.
-    -f, --qwfwd             install qwfwd proxy.
+    -t, --qtv               do not install qtv.
+    -f, --qwfwd             do not install qwfwd proxy.
     -l, --listen-address    fully qualified domain name (fqdn) or IP address.
     -a, --admin             administrator name.
     -e, --admin-email       administrator e-mail.
@@ -85,11 +85,11 @@ for i in "$@"; do
       shift
       ;;
     -t|--qtv)
-      nqinstallqtv="y"
+      nqinstallqtv="n"
       shift
       ;;
     -f|--qwfwd)
-      nqinstallqwfwd="y"
+      nqinstallqwfwd="n"
       shift
       ;;
     -l=*|--listen-address=*)
@@ -136,8 +136,8 @@ done
 defaultdir=${nqinstalldir:-\~/nquakesv}
 defaulthostname=${nqhostname:-"KTX Allround"}
 defaultports=${nqnumports:-4}
-defaultqtv=${nqinstallqtv:-n}
-defaultqwfwd=${nqinstallqwfwd:-n}
+defaultqtv=${nqinstallqtv:-y}
+defaultqwfwd=${nqinstallqwfwd:-y}
 defaultadmin=${nqadmin:-${USER}}
 defaultemail=${nqemail:-${defaultadmin}@example.com}
 defaultrcon=${nqrcon:-$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c12;echo)}
@@ -486,11 +486,15 @@ nqecho "done"
 
   [ "${addcron}" = "y" ] && {
     echo "*/10 * * * * $USER cd \$(cat ~/.nquakesv/install_dir) && ./start_servers.sh >/dev/null 2>&1" | sudo tee /etc/cron.d/nquakesv >/dev/null
+    echo "@reboot $USER cd \$(cat ~/.nquakesv/install_dir) && ./start_servers.sh >/dev/null 2>&1" | sudo tee -a /etc/cron.d/nquakesv > /dev/null
+    echo "# Uncomment the following line and create a demos_archive folder if you would like to back up demos older than 90 days (more than 4096 demos causes issues)" | sudo tee -a /etc/cron.d/nquakesv > /dev/null
+    echo "#0 13 * * 1 $USER rsync -a \$(cat ~/.nquakesv/install_dir)/ktx/demos/*.mvd \$(cat ~/.nquakesv/install_dir)/demos_archive/. >/dev/null && find \$(cat ~/.nquakesv/install_dir)/ktx/demos -mtime +90 -print0|xargs -r -0 rm -f >/dev/null" | sudo tee -a /etc/cron.d/nquakesv > /dev/null
   }
 }
 
 nqecho
 nqecho "Installation complete. Please read the README in ${directory}."
+nqecho "Please make sure this server's firewall (and the hosting provider's firewall, if applicable) allows UDP ports 28501-28504, UDP port 30000 for qwfwd, and TCP port 28000 for qtv."
 nqecho
 
 exit 0
